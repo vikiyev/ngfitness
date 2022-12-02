@@ -5,6 +5,7 @@ This angular app is built following Max Schwarzmuller's course [Angular with Ang
 - [Ngfitness](#ngfitness)
   - [Template Driven Forms with Error and Validation](#template-driven-forms-with-error-and-validation)
   - [Datepicker with Age Restriction](#datepicker-with-age-restriction)
+  - [Sidebar](#sidebar)
 
 ## Template Driven Forms with Error and Validation
 
@@ -81,6 +82,47 @@ export class SignupComponent implements OnInit {
   ngOnInit(): void {
     this.maxDate = new Date();
     this.maxDate.setFullYear(this.maxDate.getFullYear() - 18);
+  }
+}
+```
+
+## Sidebar
+
+Every page in the app will have the sidenav available, so we render the router outlet as a child of mat-sidenav-content. To make the sidenav element available to other components, we can emit a custom event, to which the app component will listen to and use to toggle sidenav.
+
+```html
+<!-- app.component -->
+<mat-sidenav-container>
+  <mat-sidenav #sidenav role="navigation">
+    <app-sidenav-list></app-sidenav-list>
+  </mat-sidenav>
+  <mat-sidenav-content>
+    <app-header (sidenavToggle)="sidenav.toggle()"></app-header>
+    <main>
+      <router-outlet></router-outlet>
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>
+```
+
+```html
+<!-- header.component -->
+<mat-toolbar color="primary">
+  <!-- hamburger -->
+  <div>
+    <button mat-icon-button (click)="onToggleSidenav()" fxHide.gt-xs>
+      <mat-icon>menu</mat-icon>
+    </button>
+  </div>
+</mat-toolbar>
+```
+
+```typescript
+export class HeaderComponent implements OnInit {
+  @Output() sidenavToggle = new EventEmitter<void>();
+
+  onToggleSidenav() {
+    this.sidenavToggle.emit();
   }
 }
 ```
