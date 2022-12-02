@@ -6,6 +6,7 @@ This angular app is built following Max Schwarzmuller's course [Angular with Ang
   - [Template Driven Forms with Error and Validation](#template-driven-forms-with-error-and-validation)
   - [Datepicker with Age Restriction](#datepicker-with-age-restriction)
   - [Sidebar](#sidebar)
+  - [Timer and Dialog](#timer-and-dialog)
 
 ## Template Driven Forms with Error and Validation
 
@@ -125,4 +126,107 @@ export class HeaderComponent implements OnInit {
     this.sidenavToggle.emit();
   }
 }
+```
+
+## Timer and Dialog
+
+The timer uses and stores intervals for keeping track of the time. The **MatDialog** is invoked programmatically as opposed to other components, which are added via the template. We need to include this component in the app module's entryComponents declaration, which are components that are never instantiated by the selectors or by routing. Angular has no way of finding out when this component is going to be used.
+
+```typescript
+export class CurrentTrainingComponent implements OnInit {
+  progress = 0;
+  timer: any;
+
+  constructor(private dialog: MatDialog) {}
+
+  ngOnInit(): void {
+    this.startOrResumeTimer();
+  }
+
+  startOrResumeTimer() {
+    this.timer = setInterval(() => {
+      this.progress = this.progress + 5;
+      if (this.progress >= 100) {
+        clearInterval(this.timer);
+      }
+    }, 1000);
+  }
+
+  onStop() {
+    clearInterval(this.timer);
+    const dialogRef = this.dialog.open(StopTrainingComponent, {
+      data: {
+        progress: this.progress,
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      console.log(result); // true or false
+    });
+  }
+}
+```
+
+```typescript
+entryComponents: [StopTrainingComponent],
+```
+
+To pass data to the dialog, we set up a **data** object as the second argument to the MatDialog.open method. We then need to inject **MAT_DIALOG_DATA** into the dialog class constructor with **@Inject()**.
+
+```typescript
+@Component({
+  selector: "app-stop-training",
+  templateUrl: "./stop-training.component.html",
+})
+export class StopTrainingComponent {
+  constructor(@Inject(MAT_DIALOG_DATA) public passedData: any) {}
+}
+```
+
+```html
+<!-- stop-training.component -->
+<h1 mat-dialog-title>Are you sure?</h1>
+<mat-dialog-content>
+  <p>You are already at {{ passedData.progress }} %</p>
+</mat-dialog-content>
+<mat-dialog-actions>
+  <button mat-button [mat-dialog-close]="true">Yes</button>
+  <button mat-button [mat-dialog-close]="false">No</button>
+</mat-dialog-actions>
+```
+
+The dialog.open() method returns a reference to the dialog to which we subscribe to. The values returned by this observable are the values bound to [mat-dialog-close]. We can set up an event emitter to emit an event to the parent (training.component) when the dialog returns true (training cancelled).
+
+```typescript
+export class CurrentTrainingComponent implements OnInit {
+  @Output() trainingExit = new EventEmitter();
+
+  onStop() {
+    clearInterval(this.timer);
+    const dialogRef = this.dialog.open(StopTrainingComponent, {
+      data: {
+        progress: this.progress,
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      console.log(result); // true or false
+      if (result) {
+        // user stops training
+        this.trainingExit.emit();
+      } else {
+        // user doesnt stop training
+        this.startOrResumeTimer();
+      }
+    });
+  }
+}
+```
+
+```html
+<!-- training.component -->
+<app-current-training
+  *ngIf="ongoingTraining"
+  (trainingExit)="ongoingTraining = false"
+></app-current-training>
 ```
