@@ -9,6 +9,7 @@ This angular app is built following Max Schwarzmuller's course [Angular with Ang
   - [Timer and Dialog](#timer-and-dialog)
   - [Authentication](#authentication)
   - [Route Guard](#route-guard)
+  - [Storing Exercise Data](#storing-exercise-data)
 
 ## Template Driven Forms with Error and Validation
 
@@ -350,4 +351,153 @@ const routes: Routes = [
 @NgModule({
   providers: [AuthGuard],
 })
+```
+
+## Storing Exercise Data
+
+We create a TrainingService for managing the exercises in the app. To set an active exercise, we need to have the training component subscribe when an exercise is selected in the service. We can do so by using a Subject which evaluates to an Exercise.
+
+```typescript
+export class TrainingService {
+  private availableExercises: Exercise[] = [
+    { id: "crunches", name: "Crunches", duration: 30, calories: 8 },
+    { id: "touch-toes", name: "Touch Toes", duration: 180, calories: 15 },
+    { id: "side-lunges", name: "Side Lunges", duration: 120, calories: 18 },
+    { id: "burpees", name: "Burpees", duration: 60, calories: 8 },
+  ];
+  private exercises: Exercise[] = [];
+  private runningExercise: Exercise;
+  public exerciseChanged = new Subject<Exercise>();
+
+  getAvailableExercises() {
+    return this.availableExercises.slice();
+  }
+
+  startExercise(selectedId: string) {
+    const selectedExercise = this.availableExercises.find(
+      (ex) => ex.id === selectedId
+    );
+    this.runningExercise = selectedExercise;
+    this.exerciseChanged.next({ ...this.runningExercise });
+  }
+
+  getRunningExercise() {
+    return { ...this.runningExercise };
+  }
+}
+```
+
+The subscription makes sure that if an exercise was emitted, the ongoingTraining property will be set to true.
+
+```typescript
+export class TrainingComponent implements OnInit, OnDestroy {
+  public ongoingTraining: boolean = false;
+  public exerciseSubscription: Subscription;
+
+  constructor(private trainingService: TrainingService) {}
+
+  ngOnInit(): void {
+    this.exerciseSubscription = this.trainingService.exerciseChanged.subscribe(
+      (ex) => {
+        if (ex) {
+          this.ongoingTraining = true;
+        } else {
+          this.ongoingTraining = false;
+        }
+      }
+    );
+  }
+}
+```
+
+We can now create the event handler in the new-training component and pass onto it the chosen exercise using a form.
+
+```typescript
+export class NewTrainingComponent implements OnInit {
+  exercises: Exercise[];
+
+  constructor(private trainingService: TrainingService) {}
+
+  onStartTraining(form: NgForm) {
+    this.trainingService.startExercise(form.value.exercise); // pass the form
+  }
+}
+```
+
+```html
+<form #f="ngForm" (ngSubmit)="onStartTraining(f)">
+  <mat-select ngModel name="exercise" required>
+    <mat-option *ngFor="let exercise of exercises" [value]="exercise.id"
+      >{{ exercise.name }}
+    </mat-option>
+  </mat-select>
+</form>
+```
+
+We also ened to make sure that the service is updated when the training finishes or is cancelled. We add the following methods to our training service.
+
+```typescript
+  completeExercise() {
+    this.exercises.push({
+      ...this.runningExercise,
+      date: new Date(),
+      state: 'completed',
+    });
+    this.runningExercise = null;
+    this.exerciseChanged.next(null);
+  }
+
+  cancelExercise(progress: number) {
+    this.exercises.push({
+      ...this.runningExercise,
+      duration: this.runningExercise.duration * (progress / 100),
+      calories: this.runningExercise.calories * (progress / 100),
+      date: new Date(),
+      state: 'cancelled',
+    });
+    this.runningExercise = null;
+    this.exerciseChanged.next(null);
+  }
+```
+
+We can then use these methods on the current-training component
+
+```typescript
+export class CurrentTrainingComponent implements OnInit {
+  progress = 0;
+  timer: any;
+
+  constructor(private trainingService: TrainingService) {}
+
+  ngOnInit(): void {
+    this.startOrResumeTimer();
+  }
+
+  startOrResumeTimer() {
+    const step =
+      (this.trainingService.getRunningExercise().duration / 100) * 1000; // divide by fix max percentage (100) then multiply by 1000ms
+
+    this.timer = setInterval(() => {
+      this.progress = this.progress + 1;
+      if (this.progress >= 100) {
+        this.trainingService.completeExercise();
+        clearInterval(this.timer);
+      }
+    }, step);
+  }
+
+  onStop() {
+    clearInterval(this.timer);
+    dialogRef.afterClosed().subscribe((result) => {
+      console.log(result); // true or false
+      if (result) {
+        // user stops training
+        this.trainingService.cancelExercise(this.progress);
+      } else {
+        // user doesnt stop training
+        this.startOrResumeTimer();
+      }
+    });
+  }
+}
 ```
