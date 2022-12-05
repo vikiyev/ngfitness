@@ -8,6 +8,7 @@ This angular app is built following Max Schwarzmuller's course [Angular with Ang
   - [Sidebar](#sidebar)
   - [Timer and Dialog](#timer-and-dialog)
   - [Authentication](#authentication)
+  - [Route Guard](#route-guard)
 
 ## Template Driven Forms with Error and Validation
 
@@ -313,4 +314,40 @@ export class HeaderComponent implements OnInit, OnDestroy {
 <li *ngIf="isAuth">
   <a>Logout</a>
 </li>
+```
+
+## Route Guard
+
+To create route guards, we need to implement the **CanActivate** interface. It needs to return true, a promise that resolves to true, or an observable that resolves to true.
+
+```typescript
+@Injectable()
+export class AuthGuard implements CanActivate {
+  constructor(private authService: AuthService, private router: Router) {}
+
+  canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot) {
+    if (this.authService.isAuth()) {
+      return true;
+    } else {
+      this.router.navigate(["/login"]);
+      return false;
+    }
+  }
+}
+```
+
+To use the guard, we can add it to the app-routing module and provide it there as well
+
+```typescript
+const routes: Routes = [
+  {
+    path: 'training',
+    component: TrainingComponent,
+    canActivate: [AuthGuard],
+  },
+];
+
+@NgModule({
+  providers: [AuthGuard],
+})
 ```
