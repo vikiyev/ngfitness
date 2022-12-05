@@ -7,6 +7,7 @@ This angular app is built following Max Schwarzmuller's course [Angular with Ang
   - [Datepicker with Age Restriction](#datepicker-with-age-restriction)
   - [Sidebar](#sidebar)
   - [Timer and Dialog](#timer-and-dialog)
+  - [Authentication](#authentication)
 
 ## Template Driven Forms with Error and Validation
 
@@ -229,4 +230,87 @@ export class CurrentTrainingComponent implements OnInit {
   *ngIf="ongoingTraining"
   (trainingExit)="ongoingTraining = false"
 ></app-current-training>
+```
+
+## Authentication
+
+We create an AuthService for faking a login until we set up Angular Fire. We create a subject which allows us to multicast events and subscribe from other parts of the app. The payload is a boolean which indicates whether a user is signed in or not.
+
+```typescript
+export class AuthService {
+  public authChange = new Subject<boolean>();
+  private user: User;
+
+  registerUser(authData: AuthData) {
+    this.user = {
+      email: authData.email,
+      userId: Math.round(Math.random() * 1000).toString(), // placeholder for until we get angular fire working
+    };
+    this.authChange.next(true);
+  }
+
+  login(authData: AuthData) {
+    this.user = {
+      email: authData.email,
+      userId: Math.round(Math.random() * 1000).toString(), // placeholder for until we get angular fire working
+    };
+    this.authChange.next(true);
+  }
+
+  logout() {
+    this.user = null;
+    this.authChange.next(false);
+  }
+
+  getUser() {
+    return { ...this.user };
+  }
+
+  isAuth() {
+    return this.user != null;
+  }
+}
+```
+
+```typescript
+  onSubmit() {
+    this.authService.login({
+      email: this.loginForm.value.email,
+      password: this.loginForm.value.password,
+    });
+  }
+```
+
+We listen to changes to the AuthService's authChange property in the header and sidenav component
+
+```typescript
+export class HeaderComponent implements OnInit, OnDestroy {
+  isAuth: boolean = false;
+  authSubscription: Subscription;
+
+  constructor(private authService: AuthService) {}
+
+  ngOnInit(): void {
+    this.authSubscription = this.authService.authChange.subscribe(
+      (authStatus) => {
+        this.isAuth = authStatus;
+      }
+    );
+  }
+}
+```
+
+```html
+<li *ngIf="!isAuth">
+  <a routerLink="/signup">Signup</a>
+</li>
+<li *ngIf="!isAuth">
+  <a routerLink="/login">Login</a>
+</li>
+<li *ngIf="isAuth">
+  <a routerLink="/training">Training</a>
+</li>
+<li *ngIf="isAuth">
+  <a>Logout</a>
+</li>
 ```

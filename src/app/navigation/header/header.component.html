@@ -10,14 +10,17 @@
   <!-- menu icons -->
   <div fxFlex fxLayout fxLayoutAlign="flex-end" fxHide.xs>
     <ul fxLayout fxLayoutGap="10px" class="navigation-items">
-      <li>
+      <li *ngIf="!isAuth">
         <a routerLink="/signup">Signup</a>
       </li>
-      <li>
+      <li *ngIf="!isAuth">
         <a routerLink="/login">Login</a>
       </li>
-      <li>
+      <li *ngIf="isAuth">
         <a routerLink="/training">Training</a>
+      </li>
+      <li *ngIf="isAuth">
+        <a>Logout</a>
       </li>
     </ul>
   </div>
