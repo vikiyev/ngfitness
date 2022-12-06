@@ -514,15 +514,15 @@ Firebase provides realtime databases, authentication, file storage, analytics, a
 
 The **AngularFirestore.collection()** method allows us to reach out to a specific collection in our firestore. **valueChanges()** will give us a real time observable, meaning we do not need to refresh a page upon update, but it strips out the metadata such as id. We can instead listen to **snapshotChanges()** which stores a snapshot of the document to obtain the metadata.
 
-We can use the map operator to map the obtained data and add back the id.
+We can use the map operator to map the obtained data and add back the id. We can also set up a Subject in the TrainingService to trigger whenever we receive new exercises to which we subscribe to from the NewTraining component.
 
 ```typescript
-export class NewTrainingComponent implements OnInit {
-  exercises: Observable<Exercise[]>;
+export class TrainingService {
+  private availableExercises: Exercise[] = [];
 
   constructor(private db: AngularFirestore) {}
 
-  ngOnInit(): void {
+  fetchAvailableExercises() {
     this.db
       .collection("availableExercises")
       .snapshotChanges()
@@ -537,9 +537,29 @@ export class NewTrainingComponent implements OnInit {
           });
         })
       )
-      .subscribe((result) => {
-        console.log(result);
-      });
+      .subscribe(
+        (exercises: Exercise[]) => (this.availableExercises = exercises)
+      );
+  }
+}
+```
+
+```typescript
+export class NewTrainingComponent implements OnInit, OnDestroy {
+  exercises: Exercise[];
+  exerciseSubscription: Subscription;
+
+  constructor(private trainingService: TrainingService) {}
+
+  ngOnInit(): void {
+    this.exerciseSubscription = this.trainingService.exercisesChanged.subscribe(
+      (exercises) => (this.exercises = exercises)
+    );
+    this.trainingService.fetchAvailableExercises();
+  }
+
+  ngOnDestroy(): void {
+    this.exerciseSubscription.unsubscribe();
   }
 }
 ```
