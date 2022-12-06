@@ -10,6 +10,7 @@ This angular app is built following Max Schwarzmuller's course [Angular with Ang
   - [Authentication](#authentication)
   - [Route Guard](#route-guard)
   - [Storing Exercise Data](#storing-exercise-data)
+  - [Firebase and Angularfire2](#firebase-and-angularfire2)
 
 ## Template Driven Forms with Error and Validation
 
@@ -498,6 +499,47 @@ export class CurrentTrainingComponent implements OnInit {
         this.startOrResumeTimer();
       }
     });
+  }
+}
+```
+
+## Firebase and Angularfire2
+
+Firebase provides realtime databases, authentication, file storage, analytics, and cloud functions for ondemand server side code. For this project, we use Cloud Firestore and Authentication. Angularfire can be setup using `ng add @angular/fire`. Alternatively, we can use the compat packages to import angularfire into our app module:
+
+```typescript
+    AngularFireModule.initializeApp(environment.firebase),
+    AngularFirestoreModule,
+```
+
+The **AngularFirestore.collection()** method allows us to reach out to a specific collection in our firestore. **valueChanges()** will give us a real time observable, meaning we do not need to refresh a page upon update, but it strips out the metadata such as id. We can instead listen to **snapshotChanges()** which stores a snapshot of the document to obtain the metadata.
+
+We can use the map operator to map the obtained data and add back the id.
+
+```typescript
+export class NewTrainingComponent implements OnInit {
+  exercises: Observable<Exercise[]>;
+
+  constructor(private db: AngularFirestore) {}
+
+  ngOnInit(): void {
+    this.db
+      .collection("availableExercises")
+      .snapshotChanges()
+      .pipe(
+        map((docArray) => {
+          return docArray.map((doc) => {
+            const data = doc.payload.doc.data() as Exercise;
+            return {
+              id: doc.payload.doc.id,
+              ...data,
+            };
+          });
+        })
+      )
+      .subscribe((result) => {
+        console.log(result);
+      });
   }
 }
 ```

@@ -96,6 +96,16 @@
             ],
             "scripts": []
           }
+        },
+        "deploy": {
+          "builder": "@angular/fire:deploy",
+          "options": {
+            "prerender": false,
+            "ssr": false,
+            "browserTarget": "ngfitness:build:production",
+            "firebaseProject": "vikiyev-fitness",
+            "firebaseHostingSite": "vikiyev-fitness"
+          }
         }
       }
     }

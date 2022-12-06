@@ -1,0 +1,14 @@
+{
+  "targets": {
+    "vikiyev-fitness": {
+      "hosting": {
+        "ngfitness": [
+          "vikiyev-fitness"
+        ]
+      }
+    }
+  },
+  "projects": {
+    "default": "vikiyev-fitness"
+  }
+}
