@@ -13,6 +13,7 @@ This angular app is built following Max Schwarzmuller's course [Angular with Ang
   - [Firebase and Angularfire2](#firebase-and-angularfire2)
     - [Fetching Data](#fetching-data)
     - [Storing Data](#storing-data)
+  - [Authentication](#authentication-1)
 
 ## Template Driven Forms with Error and Validation
 
@@ -619,6 +620,192 @@ export class PastTrainingComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.exerciseChangedSubscription.unsubscribe();
+  }
+}
+```
+
+## Authentication
+
+We can use **AngularFireAuth** for authentication. In traditional web apps, the session is stored on the server and the client uses a cookie. In Single Page Applications, the backends are typically stateless. We need to use json web tokens to prove to firebase that a user is authenticated. Angularfire already manages the token for us through firebase and attaches the token automatically in outgoing requests.
+
+```typescript
+export class AuthService {
+  public authChange = new Subject<boolean>();
+  private isAuthenticated = false;
+
+  constructor(private router: Router, private afAuth: AngularFireAuth) {}
+
+  registerUser(authData: AuthData) {
+    this.afAuth
+      .createUserWithEmailAndPassword(authData.email, authData.password)
+      .then((result) => {
+        console.log(result);
+        this.authSuccessfully();
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  }
+
+  login(authData: AuthData) {
+    this.afAuth
+      .signInWithEmailAndPassword(authData.email, authData.password)
+      .then((result) => {
+        console.log(result);
+        this.authSuccessfully();
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  }
+
+  logout() {
+    this.afAuth.signOut();
+    this.isAuthenticated = false;
+    this.authChange.next(false);
+    this.router.navigate(["/login"]);
+  }
+
+  isAuth() {
+    return this.isAuthenticated;
+  }
+
+  private authSuccessfully() {
+    this.isAuthenticated = true;
+    this.authChange.next(true);
+    this.router.navigate(["/training"]);
+  }
+}
+```
+
+We can now configure firestore to lock down the database to only allow authenticated users to write.
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+```
+
+We also need to terminate our subscriptions from firestore when we log out. We can store the subscriptions in an array and then call the cancelSubscriptions() method from the AuthService when logging out.
+
+```typescript
+export class TrainingService {
+  private fbSubs: Subscription[] = [];
+
+  constructor(private db: AngularFirestore) {}
+
+  fetchAvailableExercises() {
+    this.fbSubs.push(
+      this.db
+        .collection("availableExercises")
+        .snapshotChanges()
+        .pipe(
+          map((docArray) => {
+            return docArray.map((doc) => {
+              const data = doc.payload.doc.data() as Exercise;
+              return {
+                id: doc.payload.doc.id,
+                ...data,
+              };
+            });
+          })
+        )
+        .subscribe((exercises: Exercise[]) => {
+          // console.log(exercises);
+          this.availableExercises = exercises;
+          this.exercisesChanged.next([...this.availableExercises]);
+        })
+    );
+  }
+
+  fetchCompletedOrCancelledExercises() {
+    this.fbSubs.push(
+      this.db
+        .collection("finishedExercises")
+        .valueChanges()
+        .subscribe((exercises: Exercise[]) => {
+          this.finishedExercisesChanged.next(exercises);
+        })
+    );
+  }
+
+  cancelSubscriptions() {
+    this.fbSubs.forEach((sub) => sub.unsubscribe());
+  }
+}
+```
+
+Angularfire also provides an observable based auth status listener which listens to any changes on the authentication state. This emits a user object or a null. We can initialize this in the app component.
+
+```typescript
+export class AuthService {
+  public authChange = new Subject<boolean>();
+  private isAuthenticated = false;
+
+  constructor(
+    private router: Router,
+    private afAuth: AngularFireAuth,
+    private trainingService: TrainingService
+  ) {}
+
+  initAuthListener() {
+    this.afAuth.authState.subscribe((user) => {
+      if (user) {
+        this.isAuthenticated = true;
+        this.authChange.next(true);
+        this.router.navigate(["/training"]);
+      } else {
+        this.trainingService.cancelSubscriptions();
+        this.isAuthenticated = false;
+        this.authChange.next(false);
+        this.router.navigate(["/login"]);
+      }
+    });
+  }
+
+  registerUser(authData: AuthData) {
+    this.afAuth
+      .createUserWithEmailAndPassword(authData.email, authData.password)
+      .then((result) => {
+        console.log(result);
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  }
+
+  login(authData: AuthData) {
+    this.afAuth
+      .signInWithEmailAndPassword(authData.email, authData.password)
+      .then((result) => {
+        console.log(result);
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  }
+
+  logout() {
+    this.afAuth.signOut();
+  }
+
+  isAuth() {
+    return this.isAuthenticated;
+  }
+}
+```
+
+```typescript
+export class AppComponent implements OnInit {
+  constructor(private authService: AuthService) {}
+
+  ngOnInit(): void {
+    this.authService.initAuthListener();
   }
 }
 ```
