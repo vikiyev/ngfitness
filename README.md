@@ -11,6 +11,8 @@ This angular app is built following Max Schwarzmuller's course [Angular with Ang
   - [Route Guard](#route-guard)
   - [Storing Exercise Data](#storing-exercise-data)
   - [Firebase and Angularfire2](#firebase-and-angularfire2)
+    - [Fetching Data](#fetching-data)
+    - [Storing Data](#storing-data)
 
 ## Template Driven Forms with Error and Validation
 
@@ -512,6 +514,8 @@ Firebase provides realtime databases, authentication, file storage, analytics, a
     AngularFirestoreModule,
 ```
 
+### Fetching Data
+
 The **AngularFirestore.collection()** method allows us to reach out to a specific collection in our firestore. **valueChanges()** will give us a real time observable, meaning we do not need to refresh a page upon update, but it strips out the metadata such as id. We can instead listen to **snapshotChanges()** which stores a snapshot of the document to obtain the metadata.
 
 We can use the map operator to map the obtained data and add back the id. We can also set up a Subject in the TrainingService to trigger whenever we receive new exercises to which we subscribe to from the NewTraining component.
@@ -560,6 +564,61 @@ export class NewTrainingComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.exerciseSubscription.unsubscribe();
+  }
+}
+```
+
+### Storing Data
+
+We can save a document to the database using the **collection().add()** method, which returns a promise.
+
+```typescript
+  private addDataToDatabase(exercise: Exercise) {
+    this.db.collection('finishedExercises').add(exercise);
+  }
+```
+
+To load the data into the table, we can set up a new subject that emits an event whenever a new exercise is added to finishedExercises. The listener is initialized with the method fetchCompletedOrCancelledExercises()
+
+```typescript
+@Injectable()
+export class TrainingService {
+  public finishedExercisesChanged = new Subject<Exercise[]>();
+
+  fetchCompletedOrCancelledExercises() {
+    this.db
+      .collection("finishedExercises")
+      .valueChanges()
+      .subscribe((exercises: Exercise[]) => {
+        this.finishedExercisesChanged.next(exercises);
+      });
+  }
+
+  private addDataToDatabase(exercise: Exercise) {
+    this.db.collection("finishedExercises").add(exercise);
+  }
+}
+```
+
+```typescript
+export class PastTrainingComponent implements OnInit, AfterViewInit, OnDestroy {
+  dataSource = new MatTableDataSource<Exercise>();
+  private exerciseChangedSubscription: Subscription;
+
+  constructor(private trainingService: TrainingService) {}
+
+  ngOnInit(): void {
+    this.exerciseChangedSubscription =
+      this.trainingService.finishedExercisesChanged.subscribe(
+        (exercises: Exercise[]) => {
+          this.dataSource.data = exercises;
+        }
+      );
+    this.trainingService.fetchCompletedOrCancelledExercises();
+  }
+
+  ngOnDestroy(): void {
+    this.exerciseChangedSubscription.unsubscribe();
   }
 }
 ```

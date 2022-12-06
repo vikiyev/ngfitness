@@ -43,7 +43,7 @@ export class CurrentTrainingComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe((result) => {
-      console.log(result); // true or false
+      // console.log(result); // true or false
       if (result) {
         // user stops training
         this.trainingService.cancelExercise(this.progress);
