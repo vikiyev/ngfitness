@@ -16,6 +16,7 @@ This angular app is built following Max Schwarzmuller's course [Angular with Ang
   - [Authentication](#authentication-1)
   - [Error Handling and Spinners](#error-handling-and-spinners)
   - [Splitting into Modules](#splitting-into-modules)
+  - [Lazy Loading](#lazy-loading)
 
 ## Template Driven Forms with Error and Validation
 
@@ -868,19 +869,20 @@ export class LoginComponent implements OnInit, OnDestroy {
 
 ## Splitting into Modules
 
-The app can be split into feature modules for training and auth.
+The app can be split into feature modules for training and auth. We can create a SharedModule for modules that are shared across other modules. The SharedModule both imports and exports the modules to be shared to any other module that imports the shared module.
+
+```typescript
+@NgModule({
+  imports: [CommonModule, FormsModule, MaterialModule, FlexLayoutModule],
+  exports: [CommonModule, FormsModule, MaterialModule, FlexLayoutModule],
+})
+export class SharedModule {}
+```
 
 ```typescript
 @NgModule({
   declarations: [SignupComponent, LoginComponent],
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    MaterialModule,
-    FlexLayoutModule,
-    AngularFireAuthModule,
-  ],
+  imports: [SharedModule, ReactiveFormsModule, AngularFireAuthModule],
   exports: [],
 })
 export class AuthModule {}
@@ -895,15 +897,84 @@ export class AuthModule {}
     PastTrainingComponent,
     StopTrainingComponent,
   ],
-  imports: [
-    MaterialModule,
-    FormsModule,
-    CommonModule,
-    FlexLayoutModule,
-    AngularFirestoreModule,
-  ],
+  imports: [SharedModule],
   exports: [],
   entryComponents: [StopTrainingComponent],
 })
 export class TrainingModule {}
+```
+
+We can do the same with the AppRoutingModule by creating a new AuthRoutingModule. The **forChild()** method loads the routes into the global routes.
+
+```typescript
+const routes: Routes = [
+  {
+    path: "signup",
+    component: SignupComponent,
+  },
+  {
+    path: "login",
+    component: LoginComponent,
+  },
+];
+
+@NgModule({
+  imports: [RouterModule.forChild(routes)],
+  exports: [RouterModule],
+})
+export class AuthRoutingModule {}
+```
+
+Afterwards, we need to include the AuthRoutingModule component into the imports of AuthModule.
+
+## Lazy Loading
+
+For the Training components, we can use lazy loading as opposed to the Auth routes which were eagerly loaded. To implement lazy loading, we remove the TrainingComponent from the AppModule imports array. Then at the AppRoutingModule, we add a route to /training but use **loadChildren**.
+
+```typescript
+const routes: Routes = [
+  {
+    path: "",
+    component: WelcomeComponent,
+  },
+  {
+    path: "training",
+    loadChildren: () =>
+      import("./training/training.module").then((m) => m.TrainingModule),
+    canLoad: [AuthGuard],
+  },
+];
+
+export class AppRoutingModule {}
+```
+
+```typescript
+const routes: Routes = [
+  {
+    path: "",
+    component: TrainingComponent,
+  },
+];
+
+@NgModule({
+  imports: [RouterModule.forChild(routes)],
+  exports: [RouterModule],
+})
+export class TrainingRoutingModule {}
+```
+
+The AuthGuard is provided globally in the AppRoutingModule so that it will be a singleton. We do need to provide AuthGuard eagerly. We can do so by using **canLoad**. We then need to implement the **CanLoad** interface on the guard.
+
+```typescript
+@Injectable()
+export class AuthGuard implements CanLoad {
+  canLoad(route: Route) {
+    if (this.authService.isAuth()) {
+      return true;
+    } else {
+      this.router.navigate(["/login"]);
+      return false;
+    }
+  }
+}
 ```
