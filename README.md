@@ -14,7 +14,8 @@ This angular app is built following Max Schwarzmuller's course [Angular with Ang
     - [Fetching Data](#fetching-data)
     - [Storing Data](#storing-data)
   - [Authentication](#authentication-1)
-  - [Error Handling](#error-handling)
+  - [Error Handling and Spinners](#error-handling-and-spinners)
+  - [Splitting into Modules](#splitting-into-modules)
 
 ## Template Driven Forms with Error and Validation
 
@@ -811,7 +812,7 @@ export class AppComponent implements OnInit {
 }
 ```
 
-## Error Handling
+## Error Handling and Spinners
 
 For error handling, we can use the Snackbar component which can be opened programmatically by injecting **MatSnackBar**. For the progress spinners, we can create a UIService for controlling the ui globally. We can create a subject that will emit an event when the loading state changes which is represented by a boolean.
 
@@ -863,4 +864,45 @@ export class LoginComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.loadingSubs.unsubscribe();
   }
+```
+
+## Splitting into Modules
+
+The app can be split into feature modules for training and auth.
+
+```typescript
+@NgModule({
+  declarations: [SignupComponent, LoginComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    MaterialModule,
+    FlexLayoutModule,
+  ],
+  exports: [],
+})
+export class AuthModule {}
+```
+
+```typescript
+@NgModule({
+  declarations: [
+    TrainingComponent,
+    CurrentTrainingComponent,
+    NewTrainingComponent,
+    PastTrainingComponent,
+    StopTrainingComponent,
+  ],
+  imports: [
+    MaterialModule,
+    FormsModule,
+    CommonModule,
+    FlexLayoutModule,
+    AngularFirestoreModule,
+  ],
+  exports: [],
+  entryComponents: [StopTrainingComponent],
+})
+export class TrainingModule {}
 ```
