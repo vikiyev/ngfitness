@@ -26,6 +26,7 @@ export class TrainingService {
         .snapshotChanges()
         .pipe(
           map((docArray) => {
+            // throw new Error(); // testing loading spinner
             return docArray.map((doc) => {
               const data = doc.payload.doc.data() as Exercise;
               return {
@@ -35,12 +36,23 @@ export class TrainingService {
             });
           })
         )
-        .subscribe((exercises: Exercise[]) => {
-          // console.log(exercises);
-          this.availableExercises = exercises;
-          this.exercisesChanged.next([...this.availableExercises]);
-          this.uiService.loadingStateChanged.next(false);
-        })
+        .subscribe(
+          (exercises: Exercise[]) => {
+            // console.log(exercises);
+            this.availableExercises = exercises;
+            this.exercisesChanged.next([...this.availableExercises]);
+            this.uiService.loadingStateChanged.next(false);
+          },
+          (err) => {
+            this.uiService.loadingStateChanged.next(false);
+            this.uiService.showSnackbar(
+              'Fetching exercises failed, please try again later',
+              null,
+              3000
+            );
+            this.exercisesChanged.next(null);
+          }
+        )
     );
   }
 
