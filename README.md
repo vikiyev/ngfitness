@@ -14,6 +14,7 @@ This angular app is built following Max Schwarzmuller's course [Angular with Ang
     - [Fetching Data](#fetching-data)
     - [Storing Data](#storing-data)
   - [Authentication](#authentication-1)
+  - [Error Handling](#error-handling)
 
 ## Template Driven Forms with Error and Validation
 
@@ -808,4 +809,58 @@ export class AppComponent implements OnInit {
     this.authService.initAuthListener();
   }
 }
+```
+
+## Error Handling
+
+For error handling, we can use the Snackbar component which can be opened programmatically by injecting **MatSnackBar**. For the progress spinners, we can create a UIService for controlling the ui globally. We can create a subject that will emit an event when the loading state changes which is represented by a boolean.
+
+```typescript
+  constructor(
+    private snackbar: MatSnackBar
+    private uiService: UIService
+  ) {}
+
+  login(authData: AuthData) {
+    this.uiService.loadingStateChanged.next(true);
+    this.afAuth
+      .signInWithEmailAndPassword(authData.email, authData.password)
+      .then((result) => {
+        this.uiService.loadingStateChanged.next(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        this.uiService.loadingStateChanged.next(false);
+        this.snackbar.open(err.message, null, {
+          duration: 3000,
+        });
+      });
+  }
+```
+
+```typescript
+export class UIService {
+  loadingStateChanged = new Subject<boolean>();
+}
+```
+
+We subscribe to the loadingStateChanged listener in our components.
+
+```typescript
+export class LoginComponent implements OnInit, OnDestroy {
+  isLoading: boolean = false;
+  private loadingSubs: Subscription;
+  emailInput = new FormControl('', [Validators.required, Validators.email]);
+
+  constructor(private uiService: UIService) {}
+
+  ngOnInit(): void {
+    this.loadingSubs = this.uiService.loadingStateChanged.subscribe(
+      (isLoading) => (this.isLoading = isLoading)
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.loadingSubs.unsubscribe();
+  }
 ```
