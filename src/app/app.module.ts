@@ -14,7 +14,6 @@ import { TrainingService } from './training/training.service';
 import { WelcomeComponent } from './welcome/welcome.component';
 
 import { AngularFireModule } from '@angular/fire/compat';
-import { AngularFireAuthModule } from '@angular/fire/compat/auth';
 import { UIService } from './shared/ui.service';
 
 import { AuthModule } from './auth/auth.module';
@@ -36,7 +35,6 @@ import { TrainingModule } from './training/training.module';
     FlexLayoutModule,
     AngularFireModule.initializeApp(environment.firebase),
 
-    AngularFireAuthModule,
     AuthModule,
     TrainingModule,
   ],

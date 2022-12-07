@@ -879,6 +879,7 @@ The app can be split into feature modules for training and auth.
     ReactiveFormsModule,
     MaterialModule,
     FlexLayoutModule,
+    AngularFireAuthModule,
   ],
   exports: [],
 })
