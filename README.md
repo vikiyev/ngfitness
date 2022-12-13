@@ -17,6 +17,8 @@ This angular app is built following Max Schwarzmuller's course [Angular with Ang
   - [Error Handling and Spinners](#error-handling-and-spinners)
   - [Splitting into Modules](#splitting-into-modules)
   - [Lazy Loading](#lazy-loading)
+  - [NgRx](#ngrx)
+    - [Multiple Reducers and Actions](#multiple-reducers-and-actions)
 
 ## Template Driven Forms with Error and Validation
 
@@ -975,6 +977,239 @@ export class AuthGuard implements CanLoad {
       this.router.navigate(["/login"]);
       return false;
     }
+  }
+}
+```
+
+## NgRx
+
+We start by creating a store in our angular app. We can set up the StoreModule in the AppModule wherein we pass to the forRoot() function the main reducer.
+
+```typescript
+  imports: [
+    StoreModule.forRoot({
+      ui: appReducer,
+    }),
+  ],
+```
+
+We can create a reducer function which takes the old state as an input, and an incoming action. To be able to update the state, we need an action that triggers this change. We can use switch statements depending oon the action type.
+
+```typescript
+export interface State {
+  isLoading: boolean;
+}
+
+const initialState: State = {
+  isLoading: false,
+};
+
+export function appReducer(state = initialState, action) {
+  switch (action.type) {
+    case "START_LOADING":
+      return {
+        isLoading: true,
+      };
+    case "STOP_LOADING":
+      return {
+        isLoading: false,
+      };
+    default:
+      return state;
+  }
+}
+```
+
+We need to be able to dispatch actions and listen for changes. We can inject the store into our AuthService. Using the store, we can dispatch an action, which is an object that has a type property.
+
+```typescript
+import * as fromApp from "../app.reducer";
+
+@Injectable()
+export class AuthService {
+  constructor(private store: Store<{ ui: fromApp.State }>) {}
+
+  registerUser(authData: AuthData) {
+    // this.uiService.loadingStateChanged.next(true);
+    this.store.dispatch({ type: "START_LOADING" });
+
+    this.afAuth
+      .createUserWithEmailAndPassword(authData.email, authData.password)
+      .then((result) => {
+        // this.uiService.loadingStateChanged.next(false);
+        this.store.dispatch({ type: "STOP_LOADING" });
+      })
+      .catch((err) => {
+        console.error(err);
+        // this.uiService.loadingStateChanged.next(false);
+        this.store.dispatch({ type: "STOP_LOADING" });
+        this.uiService.showSnackbar(err.message, null, 3000);
+      });
+  }
+}
+```
+
+We then need to subscribe from within our components and template.
+
+```typescript
+export class LoginComponent implements OnInit, OnDestroy {
+  isLoading$: Observable<boolean>;
+
+  constructor(private store: Store<{ ui: fromApp.State }>) {}
+
+  ngOnInit(): void {
+    this.isLoading$ = this.store.pipe(map((state) => state.ui.isLoading));
+  }
+}
+```
+
+```html
+<button
+  mat-raised-button
+  color="primary"
+  type="submit"
+  [disabled]="loginForm.invalid"
+  *ngIf="!(isLoading$ | async)"
+>
+  Login
+</button>
+<mat-spinner *ngIf="isLoading$ | async"></mat-spinner>
+```
+
+### Multiple Reducers and Actions
+
+The general procedures for setting up multiple reducers is as follows:
+
+1. Set up action strings (ui.actions.ts)
+2. Create subreducer (ui.reducer.ts)
+3. Include subreducer into app-wide reducer and set up selectors (app.reducer.ts)
+4. Import reducers into AppModule
+5. Inject reducers into services and dispatch actions (auth.service.ts)
+6. Consume from components (login.component.ts)
+
+We start by creating a ui.actions.ts file for defining the actions and action creators.
+
+```typescript
+import { Action } from "@ngrx/store";
+
+export const START_LOADING = "[UI] Start Loading";
+export const STOP_LOADING = "[UI] Stop Loading";
+
+export class StartLoading implements Action {
+  readonly type = START_LOADING;
+}
+
+export class StopLoading implements Action {
+  readonly type = STOP_LOADING;
+}
+
+export type UIActions = StartLoading | StopLoading;
+```
+
+We then import these constants into our reducer.
+
+```typescript
+import { UIActions, START_LOADING, STOP_LOADING } from "./ui.actions";
+
+export interface State {
+  isLoading: boolean;
+}
+
+const initialState: State = {
+  isLoading: false,
+};
+
+export function uiReducer(state = initialState, action: UIActions) {
+  switch (action.type) {
+    case START_LOADING:
+      return {
+        isLoading: true,
+      };
+    case STOP_LOADING:
+      return {
+        isLoading: false,
+      };
+    default: {
+      return state;
+    }
+  }
+}
+
+export const getIsLoading = (state: State) => state.isLoading;
+```
+
+We can use the uiReducer into our app-wide reducer. We can use selector functions to help easily pull out information from our state.
+
+```typescript
+import {
+  ActionReducerMap,
+  createFeatureSelector,
+  createSelector,
+} from "@ngrx/store";
+import * as fromUi from "./shared/ui.reducer";
+
+export interface State {
+  ui: fromUi.State;
+}
+
+export const reducers: ActionReducerMap<State> = {
+  ui: fromUi.uiReducer,
+};
+
+export const getUiState = createFeatureSelector<fromUi.State>("ui");
+export const getIsLoading = createSelector(getUiState, fromUi.getIsLoading);
+```
+
+We need to update the AppModule to use the app-wide reducer.
+
+```typescript
+  imports: [
+    StoreModule.forRoot(reducers),
+  ],
+```
+
+We can now try dispatching the actions in our AuthService.
+
+```typescript
+import { Store } from "@ngrx/store";
+import * as fromRoot from "../app.reducer";
+import * as UI from "../shared/ui.actions";
+
+@Injectable()
+export class AuthService {
+  constructor(private store: Store<{ ui: fromRoot.State }>) {}
+
+  login(authData: AuthData) {
+    // this.uiService.loadingStateChanged.next(true);
+    this.store.dispatch(new UI.StartLoading());
+    this.afAuth
+      .signInWithEmailAndPassword(authData.email, authData.password)
+      .then((result) => {
+        // this.uiService.loadingStateChanged.next(false);
+        this.store.dispatch(new UI.StopLoading());
+      })
+      .catch((err) => {
+        console.error(err);
+        // this.uiService.loadingStateChanged.next(false);
+        this.store.dispatch(new UI.StopLoading());
+        this.uiService.showSnackbar(err.message, null, 3000);
+      });
+  }
+}
+```
+
+We can now start consuming from our components.
+
+```typescript
+import * as fromRoot from "../../app.reducer";
+
+export class LoginComponent implements OnInit, OnDestroy {
+  isLoading$: Observable<boolean>;
+
+  constructor(private store: Store<{ ui: fromRoot.State }>) {}
+
+  ngOnInit(): void {
+    this.isLoading$ = this.store.select(fromRoot.getIsLoading);
   }
 }
 ```
