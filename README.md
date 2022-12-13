@@ -1,5 +1,7 @@
 # Ngfitness
 
+[Live demo](https://vikiyev-fitness.web.app/)
+
 This angular app is built following Max Schwarzmuller's course [Angular with Angular Material, Angularfire & NgRx](https://www.udemy.com/course/angular-full-app-with-angular-material-angularfire-ngrx/)
 
 - [Ngfitness](#ngfitness)
@@ -22,6 +24,7 @@ This angular app is built following Max Schwarzmuller's course [Angular with Ang
     - [Actions with Payloads](#actions-with-payloads)
     - [Reducers for lazy loaded modules](#reducers-for-lazy-loaded-modules)
   - [Deployment](#deployment)
+  - [Theming](#theming)
 
 ## Template Driven Forms with Error and Validation
 
@@ -1401,3 +1404,41 @@ To dispatch the actions, we can use the fromTraining reducer instead of fromRoot
 ## Deployment
 
 To deploy to firebase hosting, we use `firebase init`. We enable hosting and configure `dist/ngfitness` as the public directory. Afterwards, we run `firebase deploy`
+
+## Theming
+
+[Reference](https://v14.material.angular.io/guide/theming#custom-themes-with-sass)
+
+To customize the theme, we create an scss file under `src/my-theme.scss`
+
+```scss
+@use "@angular/material" as mat;
+@include mat.core();
+
+$my-primary: mat.define-palette(mat.$red-palette, 500);
+$my-accent: mat.define-palette(mat.$pink-palette, A200, A100, A400);
+
+// The "warn" palette is optional and defaults to red if not specified.
+$my-warn: mat.define-palette(mat.$red-palette);
+
+$my-theme: mat.define-light-theme(
+  (
+    color: (
+      primary: $my-primary,
+      accent: $my-accent,
+      warn: $my-warn,
+    ),
+  )
+);
+
+// Emit theme-dependent styles for common features used across multiple components.
+@include mat.core-theme($my-theme);
+```
+
+We then include the theme in angular.json
+
+```json
+          "options": {
+            "styles": ["src/my-theme.scss", "src/styles.css"],
+          },
+```
