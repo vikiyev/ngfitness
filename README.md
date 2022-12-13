@@ -19,6 +19,8 @@ This angular app is built following Max Schwarzmuller's course [Angular with Ang
   - [Lazy Loading](#lazy-loading)
   - [NgRx](#ngrx)
     - [Multiple Reducers and Actions](#multiple-reducers-and-actions)
+    - [Actions with Payloads](#actions-with-payloads)
+    - [Reducers for lazy loaded modules](#reducers-for-lazy-loaded-modules)
 
 ## Template Driven Forms with Error and Validation
 
@@ -1229,4 +1231,125 @@ export class AuthGuard implements CanActivate, CanLoad {
     return this.store.select(fromRoot.getIsAuth).pipe(take(1));
   }
 }
+```
+
+### Actions with Payloads
+
+For actions that require payloads, we need to create a public property payload on the action's class constructor.
+
+```typescript
+export const SET_AVAILABLE_TRAININGS = "[Training] Set Available Trainings";
+export const SET_FINISHED_TRAININGS = "[Training] Set Finished Trainings";
+export const START_TRAINING = "[Training] Start Training";
+export const STOP_TRAINING = "[Training] Stop Training";
+
+export class SetAvailableTrainings implements Action {
+  readonly type = SET_AVAILABLE_TRAININGS;
+  constructor(public payload: Exercise[]) {}
+}
+
+export class SetFinishedTrainings implements Action {
+  readonly type = SET_FINISHED_TRAININGS;
+  constructor(public payload: Exercise[]) {}
+}
+
+export class StartTraining implements Action {
+  readonly type = START_TRAINING;
+  constructor(public payload: Exercise) {}
+}
+
+export class StopTraining implements Action {
+  readonly type = STOP_TRAINING;
+}
+
+export type TrainingActions =
+  | SetAvailableTrainings
+  | SetFinishedTrainings
+  | StartTraining
+  | StopTraining;
+```
+
+We can then use the payload on our reducers.
+
+```typescript
+export interface TrainingState {
+  availableExercises: Exercise[];
+  finishedExercises: Exercise[];
+  activeTraining: Exercise;
+}
+
+const initialState: TrainingState = {
+  availableExercises: [],
+  finishedExercises: [],
+  activeTraining: null,
+};
+
+export function trainingReducer(state = initialState, action: TrainingActions) {
+  switch (action.type) {
+    case SET_AVAILABLE_TRAININGS:
+      return {
+        ...state,
+        availableExercises: action.payload,
+      };
+    case SET_FINISHED_TRAININGS:
+      return {
+        ...state,
+        finishedExercises: action.payload,
+      };
+    case START_TRAINING:
+      return {
+        ...state,
+        activeTraining: action.payload,
+      };
+    case STOP_TRAINING:
+      return {
+        ...state,
+        activeTraining: null,
+      };
+    default: {
+      return state;
+    }
+  }
+}
+```
+
+### Reducers for lazy loaded modules
+
+The Training module is lazily loaded hence we cannot add the training state to our ActionReducerMap. We can instead extend our training state to include the root state. Additionally, we need to import the reducer to the TrainingModule using the **StoreModule.forFeature()** method
+
+```typescript
+export interface TrainingState {
+  availableExercises: Exercise[];
+  finishedExercises: Exercise[];
+  activeTraining: Exercise;
+}
+
+export interface State extends fromRoot.State {
+  training: TrainingState;
+}
+```
+
+```typescript
+  imports: [
+    StoreModule.forFeature('training', trainingReducer),
+  ],
+```
+
+We can then create the selectors for our training reducer using **createFeatureSelector** and **createSelector**
+
+```typescript
+export const getTrainingState =
+  createFeatureSelector<TrainingState>("training");
+export const getAvailableExercises = createSelector(
+  getTrainingState,
+  (state: TrainingState) => state.availableExercises
+);
+export const getFinishedExercises = createSelector(
+  getTrainingState,
+  (state: TrainingState) => state.finishedExercises
+);
+export const getActiveTraining = createSelector(
+  getTrainingState,
+  (state: TrainingState) => state.activeTraining
+);
 ```
