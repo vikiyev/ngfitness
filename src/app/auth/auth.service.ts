@@ -22,7 +22,7 @@ export class AuthService {
     private trainingService: TrainingService,
     private snackbar: MatSnackBar,
     private uiService: UIService,
-    private store: Store<{ ui: fromRoot.State }>
+    private store: Store<fromRoot.State>
   ) {}
 
   initAuthListener() {

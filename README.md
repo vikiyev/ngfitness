@@ -1177,7 +1177,7 @@ import * as UI from "../shared/ui.actions";
 
 @Injectable()
 export class AuthService {
-  constructor(private store: Store<{ ui: fromRoot.State }>) {}
+  constructor(private store: Store<fromRoot.State>) {}
 
   login(authData: AuthData) {
     // this.uiService.loadingStateChanged.next(true);
@@ -1206,7 +1206,7 @@ import * as fromRoot from "../../app.reducer";
 export class LoginComponent implements OnInit, OnDestroy {
   isLoading$: Observable<boolean>;
 
-  constructor(private store: Store<{ ui: fromRoot.State }>) {}
+  constructor(private store: Store<fromRoot.State>) {}
 
   ngOnInit(): void {
     this.isLoading$ = this.store.select(fromRoot.getIsLoading);

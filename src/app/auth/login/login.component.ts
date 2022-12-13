@@ -13,6 +13,7 @@ import * as fromRoot from '../../app.reducer';
 })
 export class LoginComponent implements OnInit, OnDestroy {
   isLoading$: Observable<boolean>;
+  // isLoading: boolean = false;
   private loadingSubs: Subscription;
   emailInput = new FormControl('', [Validators.required, Validators.email]);
   passwordInput = new FormControl('', [Validators.required]);
@@ -25,7 +26,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   constructor(
     private authService: AuthService,
     private uiService: UIService,
-    private store: Store<{ ui: fromRoot.State }>
+    private store: Store<fromRoot.State>
   ) {}
 
   ngOnInit(): void {
