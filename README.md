@@ -21,6 +21,7 @@ This angular app is built following Max Schwarzmuller's course [Angular with Ang
     - [Multiple Reducers and Actions](#multiple-reducers-and-actions)
     - [Actions with Payloads](#actions-with-payloads)
     - [Reducers for lazy loaded modules](#reducers-for-lazy-loaded-modules)
+  - [Deployment](#deployment)
 
 ## Template Driven Forms with Error and Validation
 
@@ -520,6 +521,22 @@ Firebase provides realtime databases, authentication, file storage, analytics, a
 ```typescript
     AngularFireModule.initializeApp(environment.firebase),
     AngularFirestoreModule,
+```
+
+```typescript
+// environments/environment.prod.ts
+
+export const environment = {
+  firebase: {
+    projectId: "",
+    appId: "",
+    storageBucket: "",
+    apiKey: "",
+    authDomain: "",
+    messagingSenderId: "",
+  },
+  production: true,
+};
 ```
 
 ### Fetching Data
@@ -1380,3 +1397,7 @@ To dispatch the actions, we can use the fromTraining reducer instead of fromRoot
     );
   }
 ```
+
+## Deployment
+
+To deploy to firebase hosting, we use `firebase init`. We enable hosting and configure `dist/ngfitness` as the public directory. Afterwards, we run `firebase deploy`
