@@ -10,11 +10,12 @@ import { UIService } from '../shared/ui.service';
 import { Store } from '@ngrx/store';
 import * as fromRoot from '../app.reducer';
 import * as UI from '../shared/ui.actions';
+import * as Auth from './auth.actions';
 
 @Injectable()
 export class AuthService {
-  public authChange = new Subject<boolean>();
-  private isAuthenticated = false;
+  // public authChange = new Subject<boolean>();
+  // private isAuthenticated = false;
 
   constructor(
     private router: Router,
@@ -28,14 +29,16 @@ export class AuthService {
   initAuthListener() {
     this.afAuth.authState.subscribe((user) => {
       if (user) {
-        this.isAuthenticated = true;
-        this.authChange.next(true);
+        this.store.dispatch(new Auth.SetAuthenticated());
+        // this.isAuthenticated = true;
+        // this.authChange.next(true);
         this.router.navigate(['/training']);
       } else {
         this.trainingService.cancelSubscriptions();
-        this.authChange.next(false);
+        this.store.dispatch(new Auth.SetUnauthenticated());
+        // this.authChange.next(false);
+        // this.isAuthenticated = false;
         this.router.navigate(['/login']);
-        this.isAuthenticated = false;
       }
     });
   }
@@ -79,7 +82,7 @@ export class AuthService {
     this.afAuth.signOut();
   }
 
-  isAuth() {
-    return this.isAuthenticated;
-  }
+  // isAuth() {
+  //   return this.isAuthenticated;
+  // }
 }
