@@ -1,10 +1,9 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { NgForm } from '@angular/forms';
 import { Store } from '@ngrx/store';
-import { Observable, Subscription } from 'rxjs';
+import { Observable } from 'rxjs';
 
 import * as fromRoot from '../../app.reducer';
-import { UIService } from 'src/app/shared/ui.service';
 import { AuthService } from '../auth.service';
 @Component({
   selector: 'app-signup',
@@ -15,11 +14,11 @@ export class SignupComponent implements OnInit, OnDestroy {
   maxDate: Date = new Date();
   isLoading$: Observable<boolean>;
   // isLoading: boolean = false;
-  private loadingSubs: Subscription;
+  // private loadingSubs: Subscription;
 
   constructor(
     private authService: AuthService,
-    private uiService: UIService,
+    // private uiService: UIService,
     private store: Store<fromRoot.State>
   ) {}
 

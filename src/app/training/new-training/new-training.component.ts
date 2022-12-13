@@ -1,13 +1,13 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { NgForm } from '@angular/forms';
-import { AngularFirestore } from '@angular/fire/compat/firestore';
-import { Observable, Subscription } from 'rxjs';
+import { Observable } from 'rxjs';
 
 import { Exercise } from 'src/app/models/exercise.model';
 import { TrainingService } from '../training.service';
 import { UIService } from 'src/app/shared/ui.service';
 import { Store } from '@ngrx/store';
 
+import * as fromTraining from '../training.reducer';
 import * as fromRoot from '../../app.reducer';
 @Component({
   selector: 'app-new-training',
@@ -15,16 +15,17 @@ import * as fromRoot from '../../app.reducer';
   styleUrls: ['./new-training.component.css'],
 })
 export class NewTrainingComponent implements OnInit, OnDestroy {
-  exercises: Exercise[];
+  // exercises: Exercise[];
+  exercises$: Observable<Exercise[]>;
   // isLoading: boolean = true;
   isLoading$: Observable<boolean>;
-  private loadingSubs: Subscription;
-  private exerciseSubscription: Subscription;
+  // private loadingSubs: Subscription;
+  // private exerciseSubscription: Subscription;
 
   constructor(
     private trainingService: TrainingService,
     private uiService: UIService,
-    private store: Store<fromRoot.State>
+    private store: Store<fromTraining.State>
   ) {}
 
   ngOnInit(): void {
@@ -32,9 +33,10 @@ export class NewTrainingComponent implements OnInit, OnDestroy {
     // this.loadingSubs = this.uiService.loadingStateChanged.subscribe(
     //   (isLoading) => (this.isLoading = isLoading)
     // );
-    this.exerciseSubscription = this.trainingService.exercisesChanged.subscribe(
-      (exercises) => (this.exercises = exercises)
-    );
+    this.exercises$ = this.store.select(fromTraining.getAvailableExercises);
+    // this.exerciseSubscription = this.trainingService.exercisesChanged.subscribe(
+    //   (exercises) => (this.exercises = exercises)
+    // );
     this.fetchExercises();
   }
 
@@ -43,10 +45,9 @@ export class NewTrainingComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (this.exerciseSubscription) {
-      this.exerciseSubscription.unsubscribe();
-    }
-
+    // if (this.exerciseSubscription) {
+    //   this.exerciseSubscription.unsubscribe();
+    // }
     // if (this.loadingSubs) {
     //   this.loadingSubs.unsubscribe();
     // }

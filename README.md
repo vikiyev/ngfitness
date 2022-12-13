@@ -1255,7 +1255,7 @@ export class SetFinishedTrainings implements Action {
 
 export class StartTraining implements Action {
   readonly type = START_TRAINING;
-  constructor(public payload: Exercise) {}
+  constructor(public payload: string) {}
 }
 
 export class StopTraining implements Action {
@@ -1299,7 +1299,9 @@ export function trainingReducer(state = initialState, action: TrainingActions) {
     case START_TRAINING:
       return {
         ...state,
-        activeTraining: action.payload,
+        activeTraining: {
+          ...state.availableExercises.find((ex) => ex.id === action.payload),
+        },
       };
     case STOP_TRAINING:
       return {
@@ -1352,4 +1354,29 @@ export const getActiveTraining = createSelector(
   getTrainingState,
   (state: TrainingState) => state.activeTraining
 );
+```
+
+To dispatch the actions, we can use the fromTraining reducer instead of fromRoot. We can still dispatch global actions since fromTraining extends the root reducer
+
+```typescript
+  constructor(
+    private store: Store<fromTraining.State>
+  ) {}
+
+  fetchAvailableExercises() {
+    this.fbSubs.push(
+        //
+        )
+        .subscribe(
+          (exercises: Exercise[]) => {
+            // this.availableExercises = exercises;
+            // this.exercisesChanged.next([...this.availableExercises]);
+            this.store.dispatch(new Training.SetAvailableTrainings(exercises));
+          },
+          (err) => {
+            //
+          }
+        )
+    );
+  }
 ```

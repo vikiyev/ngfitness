@@ -1,8 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
-import { Subject } from 'rxjs';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
-import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { AuthData } from '../models/auth-data.model';
 import { TrainingService } from '../training/training.service';

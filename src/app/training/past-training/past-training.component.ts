@@ -5,12 +5,14 @@ import {
   AfterViewInit,
   OnDestroy,
 } from '@angular/core';
-import { Subscription } from 'rxjs';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
 import { Exercise } from 'src/app/models/exercise.model';
 import { TrainingService } from '../training.service';
 import { MatPaginator } from '@angular/material/paginator';
+import { Store } from '@ngrx/store';
+
+import * as fromTraining from '../training.reducer';
 
 @Component({
   selector: 'app-past-training',
@@ -19,7 +21,7 @@ import { MatPaginator } from '@angular/material/paginator';
 })
 export class PastTrainingComponent implements OnInit, AfterViewInit, OnDestroy {
   dataSource = new MatTableDataSource<Exercise>();
-  private exerciseChangedSubscription: Subscription;
+  // private exerciseChangedSubscription: Subscription;
   displayedColumns: string[] = [
     'date',
     'name',
@@ -30,15 +32,23 @@ export class PastTrainingComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild(MatSort) sort: MatSort;
   @ViewChild(MatPaginator) paginator: MatPaginator;
 
-  constructor(private trainingService: TrainingService) {}
+  constructor(
+    private trainingService: TrainingService,
+    private store: Store<fromTraining.State>
+  ) {}
 
   ngOnInit(): void {
-    this.exerciseChangedSubscription =
-      this.trainingService.finishedExercisesChanged.subscribe(
-        (exercises: Exercise[]) => {
-          this.dataSource.data = exercises;
-        }
-      );
+    // this.exerciseChangedSubscription =
+    //   this.trainingService.finishedExercisesChanged.subscribe(
+    //     (exercises: Exercise[]) => {
+    //       this.dataSource.data = exercises;
+    //     }
+    //   );
+    this.store
+      .select(fromTraining.getFinishedExercises)
+      .subscribe((exercises: Exercise[]) => {
+        this.dataSource.data = exercises;
+      });
     this.trainingService.fetchCompletedOrCancelledExercises();
   }
 
@@ -48,9 +58,9 @@ export class PastTrainingComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (this.exerciseChangedSubscription) {
-      this.exerciseChangedSubscription.unsubscribe();
-    }
+    // if (this.exerciseChangedSubscription) {
+    //   this.exerciseChangedSubscription.unsubscribe();
+    // }
   }
 
   doFilter(event: KeyboardEvent) {
