@@ -1213,3 +1213,20 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 }
 ```
+
+For the AuthGuard, we need to use the **take()** operator to take 1, since an auth guard constantly emits values.
+
+```typescript
+@Injectable()
+export class AuthGuard implements CanActivate, CanLoad {
+  constructor(private store: Store<fromRoot.State>) {}
+
+  canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot) {
+    return this.store.select(fromRoot.getIsAuth).pipe(take(1));
+  }
+
+  canLoad(route: Route) {
+    return this.store.select(fromRoot.getIsAuth).pipe(take(1));
+  }
+}
+```
